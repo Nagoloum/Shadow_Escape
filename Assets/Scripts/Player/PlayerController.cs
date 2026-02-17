@@ -1,19 +1,19 @@
-// Assets/Scripts/Player/PlayerController.cs
 using UnityEngine;
+using UnityEngine.InputSystem;
 using System.Collections.Generic;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
     // ══════════════════════════════════════════════
-    //  PARAMÈTRES DE MOUVEMENT
+    //  PARAMETRES DE MOUVEMENT
     // ══════════════════════════════════════════════
     [Header("=== MOVEMENT ===")]
     public float normalSpeed = 5f;
     public float crouchSpeed = 2.5f;
 
     // ══════════════════════════════════════════════
-    //  ÉTAT DU JOUEUR
+    //  ETAT DU JOUEUR
     // ══════════════════════════════════════════════
     [Header("=== STATE (lecture seule) ===")]
     [SerializeField] private bool isInShadow = false;
@@ -22,30 +22,27 @@ public class PlayerController : MonoBehaviour
     public bool IsInShadow => isInShadow;
     public bool IsCrouching => isCrouching;
 
-    // Nombre de zones d'ombre qui couvrent le joueur (peut être dans plusieurs)
     private int shadowCount = 0;
+    private float currentSpeed = 5f;
 
     // ══════════════════════════════════════════════
-    //  INVENTAIRE DES CLÉS
+    //  INVENTAIRE
     // ══════════════════════════════════════════════
-    [Header("=== INVENTORY ===")]
     private Dictionary<KeyColor, int> keys = new Dictionary<KeyColor, int>();
 
     // ══════════════════════════════════════════════
     //  VISUELS
     // ══════════════════════════════════════════════
     [Header("=== VISUALS ===")]
-    public Color colorNormal = new Color(1f, 1f, 1f, 1f);   // blanc
-    public Color colorShadow = new Color(0.2f, 0.3f, 0.8f, 0.7f); // bleu semi-transparent
-    public Color colorExposed = new Color(1f, 0.2f, 0.2f, 1f);   // rouge
+    public Color colorShadow = new Color(0.2f, 0.3f, 0.8f, 0.7f);
+    public Color colorExposed = new Color(1f, 0.2f, 0.2f, 1f);
 
     // ══════════════════════════════════════════════
     //  COMPOSANTS
     // ══════════════════════════════════════════════
     private Rigidbody2D rb;
     private SpriteRenderer sr;
-    private Vector2 moveInput;
-    private float currentSpeed;
+    private Vector2 moveInput = Vector2.zero;
 
     // ══════════════════════════════════════════════
     //  INITIALISATION
@@ -55,10 +52,9 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
 
-        rb.gravityScale = 0f;         // Top-down : pas de gravité
+        rb.gravityScale = 0f;
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
 
-        // Init inventaire
         foreach (KeyColor c in System.Enum.GetValues(typeof(KeyColor)))
             keys[c] = 0;
 
@@ -66,37 +62,39 @@ public class PlayerController : MonoBehaviour
     }
 
     // ══════════════════════════════════════════════
-    //  UPDATE — INPUTS
+    //  UPDATE — INPUTS (nouveau Input System)
     // ══════════════════════════════════════════════
     void Update()
     {
-        // Lecture des inputs
-        moveInput.x = Input.GetAxisRaw("Horizontal");
-        moveInput.y = Input.GetAxisRaw("Vertical");
+        var keyboard = Keyboard.current;
+        if (keyboard == null) return;
 
-        // Accroupissement (Shift)
-        isCrouching = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        // Deplacement
+        float x = 0f, y = 0f;
+        if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) x += 1f;
+        if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) x -= 1f;
+        if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) y += 1f;
+        if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) y -= 1f;
+        moveInput = new Vector2(x, y);
+
+        // Accroupissement
+        isCrouching = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
         currentSpeed = isCrouching ? crouchSpeed : normalSpeed;
 
         // Interaction (E)
-        if (Input.GetKeyDown(KeyCode.E))
+        if (keyboard.eKey.wasPressedThisFrame)
             TryInteract();
 
-        // Mise à jour visuels
+        // Visuels + HUD
         UpdateVisuals();
-
-        // Mise à jour HUD visibilité
         if (UIManager.Instance != null)
             UIManager.Instance.UpdatePlayerVisibility(isInShadow);
     }
 
     void FixedUpdate()
     {
-        // Déplacement physique
-        Vector2 velocity = moveInput.normalized * currentSpeed;
-        rb.linearVelocity = velocity;
+        rb.linearVelocity = moveInput.normalized * currentSpeed;
 
-        // Rotation vers la direction de déplacement
         if (moveInput != Vector2.zero)
         {
             float angle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg - 90f;
@@ -105,9 +103,8 @@ public class PlayerController : MonoBehaviour
     }
 
     // ══════════════════════════════════════════════
-    //  OMBRES — le joueur entre/sort d'une zone d'ombre
+    //  OMBRES
     // ══════════════════════════════════════════════
-
     public void EnterShadow()
     {
         shadowCount++;
@@ -126,37 +123,28 @@ public class PlayerController : MonoBehaviour
     void UpdateVisuals()
     {
         if (sr == null) return;
-
-        if (isInShadow)
-            sr.color = colorShadow;
-        else
-            sr.color = colorExposed;
+        sr.color = isInShadow ? colorShadow : colorExposed;
     }
 
     // ══════════════════════════════════════════════
-    //  INTERACTIONS
+    //  INTERACTION
     // ══════════════════════════════════════════════
     void TryInteract()
     {
-        // Cherche tous les objets interactifs à portée
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, 1.2f);
-
         foreach (Collider2D hit in hits)
         {
-            // Porte
             Door door = hit.GetComponent<Door>();
             if (door != null) { door.TryOpen(this); return; }
 
-            // Bouton
             ButtonSwitch btn = hit.GetComponent<ButtonSwitch>();
             if (btn != null) { btn.Press(); return; }
         }
     }
 
     // ══════════════════════════════════════════════
-    //  INVENTAIRE DES CLÉS
+    //  CLES
     // ══════════════════════════════════════════════
-
     public void AddKey(KeyColor color)
     {
         keys[color]++;
@@ -168,16 +156,14 @@ public class PlayerController : MonoBehaviour
 
     public void UseKey(KeyColor color)
     {
-        if (keys[color] > 0)
-        {
-            keys[color]--;
-            if (UIManager.Instance != null)
-                UIManager.Instance.UpdateKeyDisplay(color, keys[color]);
-        }
+        if (keys[color] <= 0) return;
+        keys[color]--;
+        if (UIManager.Instance != null)
+            UIManager.Instance.UpdateKeyDisplay(color, keys[color]);
     }
 
     // ══════════════════════════════════════════════
-    //  DÉTECTION — appelé par l'IA ennemie
+    //  DETECTION
     // ══════════════════════════════════════════════
     public void GetSpotted()
     {
@@ -186,11 +172,11 @@ public class PlayerController : MonoBehaviour
     }
 
     // ══════════════════════════════════════════════
-    //  GIZMOS (debug visuel dans l'éditeur)
+    //  GIZMOS
     // ══════════════════════════════════════════════
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, 1.2f); // rayon d'interaction
+        Gizmos.DrawWireSphere(transform.position, 1.2f);
     }
 }

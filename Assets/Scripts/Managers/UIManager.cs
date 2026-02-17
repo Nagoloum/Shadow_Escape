@@ -1,7 +1,9 @@
 ﻿// Assets/Scripts/Managers/UIManager.cs
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections.Generic;
 
 public class UIManager : MonoBehaviour
 {
@@ -24,7 +26,7 @@ public class UIManager : MonoBehaviour
     }
 
     // ══════════════════════════════════════════════
-    //  RÉFÉRENCES — ÉCRANS
+    //  REFERENCES — ECRANS
     // ══════════════════════════════════════════════
     [Header("=== SCREENS ===")]
     public GameObject mainMenu;
@@ -36,14 +38,14 @@ public class UIManager : MonoBehaviour
     public GameObject optionsScreen;
 
     // ══════════════════════════════════════════════
-    //  RÉFÉRENCES — MAIN MENU
+    //  REFERENCES — MAIN MENU
     // ══════════════════════════════════════════════
     [Header("=== MAIN MENU BUTTONS ===")]
-    public GameObject newGameButton;      // Toujours visible
-    public GameObject continueButton;     // Visible seulement si niveau 2+ débloqué
+    public GameObject newGameButton;
+    public GameObject continueButton;
 
     // ══════════════════════════════════════════════
-    //  RÉFÉRENCES — HUD
+    //  REFERENCES — HUD
     // ══════════════════════════════════════════════
     [Header("=== HUD : TOP BAR ===")]
     public TextMeshProUGUI levelNameText;
@@ -66,29 +68,42 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI interactionPrompt;
 
     // ══════════════════════════════════════════════
-    //  RÉFÉRENCES — VICTORY SCREEN
+    //  REFERENCES — VICTORY SCREEN
     // ══════════════════════════════════════════════
     [Header("=== VICTORY SCREEN ===")]
     public TextMeshProUGUI victoryTimeText;
     public TextMeshProUGUI victoryDetectionsText;
     public TextMeshProUGUI victoryScoreText;
-    public Image[] victoryStars;   // 3 images étoiles
-    public GameObject nextLevelButton; // Caché si niveau 5 terminé
+    public Image[] victoryStars;
+    public GameObject nextLevelButton;
 
     // ══════════════════════════════════════════════
-    //  RÉFÉRENCES — DEFEAT SCREEN
+    //  REFERENCES — DEFEAT SCREEN
     // ══════════════════════════════════════════════
     [Header("=== DEFEAT SCREEN ===")]
     public TextMeshProUGUI defeatReasonText;
 
     // ══════════════════════════════════════════════
+    //  PILE D'ECRANS (Screen Stack)
+    //
+    //  Principe : chaque ecran qu'on "ouvre par-dessus"
+    //  un autre est empile. Quand on fait "Back", on
+    //  depile et on reaffiche l'ecran precedent.
+    //
+    //  Exemple :
+    //    MainMenu → Options       : pile = [MainMenu]
+    //    MainMenu → LevelSelect   : pile = [MainMenu]
+    //    PauseMenu → Options      : pile = [PauseMenu]
+    // ══════════════════════════════════════════════
+    private Stack<GameObject> screenStack = new Stack<GameObject>();
+
+    // ══════════════════════════════════════════════
     //  VARIABLES INTERNES
     // ══════════════════════════════════════════════
-    private float gameTime = 0f;
     private bool isTimerRunning = false;
 
     // ══════════════════════════════════════════════
-    //  DÉMARRAGE
+    //  DEMARRAGE
     // ══════════════════════════════════════════════
     void Start()
     {
@@ -97,33 +112,89 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
-        // Timer HUD (le vrai timer est dans LevelManager, celui-ci est juste l'affichage)
+        // Timer HUD
         if (isTimerRunning && LevelManager.Instance != null)
-        {
             SafeSetText(timerText, FormatTime(LevelManager.Instance.GetCurrentTime()));
-        }
 
-        // Escape → Pause / Dépause
-        if (gameHUD != null && gameHUD.activeSelf)
+        // Escape → Pause en jeu / Back ailleurs
+        if (Keyboard.current == null) return;
+
+        if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            if (Input.GetKeyDown(KeyCode.Escape))
+            // Si le jeu tourne → pause
+            if (gameHUD != null && gameHUD.activeSelf)
+            {
                 ShowPauseMenu();
-        }
-        else if (pauseMenu != null && pauseMenu.activeSelf)
-        {
-            if (Input.GetKeyDown(KeyCode.Escape))
-                HidePauseMenu();
+            }
+            // Sinon → Back (comme appuyer sur le bouton Back)
+            else
+            {
+                GoBack();
+            }
         }
     }
 
     // ══════════════════════════════════════════════
-    //  NAVIGATION ENTRE ÉCRANS
+    //  NAVIGATION PRINCIPALE
+    // ══════════════════════════════════════════════
+
+    /// <summary>
+    /// Revient a l'ecran precedent dans la pile.
+    /// Si la pile est vide, ne fait rien.
+    /// </summary>
+    public void GoBack()
+    {
+        if (screenStack.Count == 0) return;
+
+        // Desactive l'ecran actuel
+        GameObject current = GetCurrentActiveScreen();
+        if (current != null) SafeSetActive(current, false);
+
+        // Reactiver le precedent
+        GameObject previous = screenStack.Pop();
+        SafeSetActive(previous, true);
+
+        // Cas special : si on revient sur le PauseMenu, remet le jeu en pause
+        if (previous == pauseMenu)
+            Time.timeScale = 0f;
+    }
+
+    /// <summary>
+    /// Ouvre un ecran "par-dessus" l'ecran actuel.
+    /// L'ecran actuel est empile (il sera restaure par GoBack).
+    /// </summary>
+    void PushScreen(GameObject newScreen)
+    {
+        // Empile l'ecran actuel
+        GameObject current = GetCurrentActiveScreen();
+        if (current != null)
+        {
+            screenStack.Push(current);
+            SafeSetActive(current, false);
+        }
+
+        // Affiche le nouvel ecran
+        SafeSetActive(newScreen, true);
+    }
+
+    /// <summary>
+    /// Affiche un ecran en effacant toute la pile (navigation "racine").
+    /// Utilise pour les transitions majeures (ex: aller au menu principal).
+    /// </summary>
+    void GoToScreen(GameObject newScreen)
+    {
+        screenStack.Clear();
+        HideAllScreens();
+        SafeSetActive(newScreen, true);
+    }
+
+    // ══════════════════════════════════════════════
+    //  ECRANS SPECIFIQUES
     // ══════════════════════════════════════════════
 
     public void ShowMainMenu()
     {
-        HideAllScreens();
-        SafeSetActive(mainMenu, true);
+        GoToScreen(mainMenu);
         isTimerRunning = false;
         Time.timeScale = 1f;
         RefreshMainMenuButtons();
@@ -131,44 +202,44 @@ public class UIManager : MonoBehaviour
 
     public void ShowGameHUD()
     {
-        HideAllScreens();
-        SafeSetActive(gameHUD, true);
+        GoToScreen(gameHUD);
         isTimerRunning = true;
         Time.timeScale = 1f;
     }
 
+    // Pause : s'ouvre PAR-DESSUS le HUD (HUD reste en arriere)
     public void ShowPauseMenu()
     {
-        SafeSetActive(pauseMenu, true);
+        PushScreen(pauseMenu);
         Time.timeScale = 0f;
     }
 
     public void HidePauseMenu()
     {
-        SafeSetActive(pauseMenu, false);
+        GoBack();
         Time.timeScale = 1f;
     }
 
+    // Options : s'ouvre PAR-DESSUS l'ecran actuel (MainMenu ou PauseMenu)
     public void ShowOptions()
     {
-        SafeSetActive(optionsScreen, true);
+        PushScreen(optionsScreen);
     }
 
     public void HideOptions()
     {
-        SafeSetActive(optionsScreen, false);
+        GoBack();
     }
 
+    // Level Select : s'ouvre PAR-DESSUS le MainMenu
     public void ShowLevelSelect()
     {
-        HideAllScreens();
-        SafeSetActive(levelSelectScreen, true);
+        PushScreen(levelSelectScreen);
     }
 
     public void ShowVictoryScreen(float time, int detections, int score)
     {
-        HideAllScreens();
-        SafeSetActive(victoryScreen, true);
+        GoToScreen(victoryScreen);
         isTimerRunning = false;
         Time.timeScale = 1f;
 
@@ -176,7 +247,6 @@ public class UIManager : MonoBehaviour
         SafeSetText(victoryDetectionsText, "Detections: " + detections);
         SafeSetText(victoryScoreText, "Score: " + score);
 
-        // Étoiles
         if (victoryStars != null)
         {
             int stars = CalculateStars(score);
@@ -185,15 +255,13 @@ public class UIManager : MonoBehaviour
                     victoryStars[i].color = (i < stars) ? Color.yellow : Color.gray;
         }
 
-        // Cache le bouton "Next Level" si c'était le niveau 5
         if (nextLevelButton != null && LevelManager.Instance != null)
             nextLevelButton.SetActive(LevelManager.Instance.GetCurrentLevelIndex() < 5);
     }
 
     public void ShowDefeatScreen(string reason)
     {
-        HideAllScreens();
-        SafeSetActive(defeatScreen, true);
+        GoToScreen(defeatScreen);
         SafeSetText(defeatReasonText, reason);
         isTimerRunning = false;
         Time.timeScale = 1f;
@@ -213,26 +281,17 @@ public class UIManager : MonoBehaviour
     // ══════════════════════════════════════════════
     //  LOGIQUE NEW GAME / CONTINUE
     // ══════════════════════════════════════════════
-
-    /// <summary>
-    /// Affiche "Continue" seulement si au moins le niveau 2 est débloqué
-    /// </summary>
     void RefreshMainMenuButtons()
     {
         if (LevelManager.Instance == null) return;
 
         bool hasProgress = LevelManager.Instance.IsLevelUnlocked(2);
-
-        if (continueButton != null)
-            continueButton.SetActive(hasProgress);
-
-        // newGameButton est toujours visible
-        if (newGameButton != null)
-            newGameButton.SetActive(true);
+        if (continueButton != null) continueButton.SetActive(hasProgress);
+        if (newGameButton != null) newGameButton.SetActive(true);
     }
 
     // ══════════════════════════════════════════════
-    //  MISES À JOUR HUD
+    //  MISES A JOUR HUD
     // ══════════════════════════════════════════════
 
     public void SetLevelName(string levelName)
@@ -279,13 +338,12 @@ public class UIManager : MonoBehaviour
     }
 
     // ══════════════════════════════════════════════
-    //  BOUTONS (liés dans l'Inspector)
+    //  BOUTONS (lies dans l'Inspector)
     // ══════════════════════════════════════════════
 
     // --- Main Menu ---
     public void OnNewGameButton()
     {
-        // Efface toute progression et démarre niveau 1
         if (LevelManager.Instance != null)
         {
             LevelManager.Instance.ResetAllProgress();
@@ -295,7 +353,6 @@ public class UIManager : MonoBehaviour
 
     public void OnContinueButton()
     {
-        // Reprend au dernier niveau débloqué
         if (LevelManager.Instance != null)
         {
             int lastUnlocked = PlayerPrefs.GetInt("UnlockedLevels", 1);
@@ -303,8 +360,11 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void OnLevelsButton() => ShowLevelSelect();
+    // Options s'ouvre par-dessus l'ecran actuel
     public void OnOptionsButton() => ShowOptions();
+
+    // Level Select s'ouvre par-dessus MainMenu
+    public void OnLevelsButton() => ShowLevelSelect();
 
     public void OnQuitButton()
     {
@@ -315,8 +375,11 @@ public class UIManager : MonoBehaviour
 #endif
     }
 
-    // --- Menu Pause ---
-    public void OnResumeButton() => HidePauseMenu();
+    // --- Pause ---
+    public void OnResumeButton()
+    {
+        HidePauseMenu();
+    }
 
     public void OnRestartButton()
     {
@@ -331,18 +394,37 @@ public class UIManager : MonoBehaviour
         ShowMainMenu();
     }
 
-    // --- Victory Screen ---
+    // --- Victory ---
     public void OnNextLevelButton()
     {
         if (LevelManager.Instance != null)
             LevelManager.Instance.LoadNextLevel();
     }
 
-    // --- Options ---
-    public void OnBackFromOptions() => HideOptions();
+    // --- Back universel (bouton "Back" dans Options, LevelSelect, etc.) ---
+    public void OnBackButton() => GoBack();
 
     // ══════════════════════════════════════════════
-    //  UTILITAIRES
+    //  UTILITAIRE — ecran actif
+    // ══════════════════════════════════════════════
+
+    /// <summary>
+    /// Retourne l'ecran qui est actuellement actif.
+    /// </summary>
+    GameObject GetCurrentActiveScreen()
+    {
+        if (mainMenu != null && mainMenu.activeSelf) return mainMenu;
+        if (gameHUD != null && gameHUD.activeSelf) return gameHUD;
+        if (pauseMenu != null && pauseMenu.activeSelf) return pauseMenu;
+        if (victoryScreen != null && victoryScreen.activeSelf) return victoryScreen;
+        if (defeatScreen != null && defeatScreen.activeSelf) return defeatScreen;
+        if (levelSelectScreen != null && levelSelectScreen.activeSelf) return levelSelectScreen;
+        if (optionsScreen != null && optionsScreen.activeSelf) return optionsScreen;
+        return null;
+    }
+
+    // ══════════════════════════════════════════════
+    //  UTILITAIRES INTERNES
     // ══════════════════════════════════════════════
 
     void SafeSetActive(GameObject obj, bool active)

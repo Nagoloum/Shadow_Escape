@@ -3,16 +3,8 @@
   "WorkspaceRootPath": "C:\\Users\\ASUS\\Shadow Escape\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|c:\\users\\asus\\shadow escape\\assets\\scripts\\managers\\levelmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\levelmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|c:\\users\\asus\\shadow escape\\assets\\scripts\\leveldata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\leveldata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|c:\\users\\asus\\shadow escape\\assets\\scripts\\managers\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|c:\\users\\asus\\shadow escape\\assets\\scripts\\player\\playercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\player\\playercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -27,40 +19,14 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "LevelManager.cs",
-              "DocumentMoniker": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Managers\\LevelManager.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\LevelManager.cs",
-              "ToolTip": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Managers\\LevelManager.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Managers\\LevelManager.cs",
-              "ViewState": "AgIAAAoAAAAAAAAAAAAQwBsAAAAAAAAAAAAAAA==",
+              "Title": "PlayerController.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Player\\PlayerController.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Player\\PlayerController.cs",
+              "ToolTip": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Player\\PlayerController.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Player\\PlayerController.cs",
+              "ViewState": "AgIAAEYAAAAAAAAAAAAewEkAAAA1AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-15T21:33:10.127Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "LevelData.cs",
-              "DocumentMoniker": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\LevelData.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\LevelData.cs",
-              "ToolTip": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\LevelData.cs",
-              "RelativeToolTip": "Assets\\Scripts\\LevelData.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAoAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-15T21:26:56.663Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "UIManager.cs",
-              "DocumentMoniker": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Managers\\UIManager.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\UIManager.cs",
-              "ToolTip": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Managers\\UIManager.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Managers\\UIManager.cs",
-              "ViewState": "AgIAACUBAAAAAAAAAAAwwDcBAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-15T15:47:02.903Z",
+              "WhenOpened": "2026-02-16T12:13:01.863Z",
               "EditorCaption": ""
             }
           ]
