@@ -29,8 +29,8 @@ Transform:
   m_GameObject: {fileID: 527776779155973879}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -18.5863, y: -118.8138, z: 0}
-  m_LocalScale: {x: 22.72369, y: 21.817162, z: 10.171468}
+  m_LocalPosition: {x: -25.72, y: -10.36, z: 0}
+  m_LocalScale: {x: 0.72918975, y: 0.70009977, z: 0.32639638}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -173,6 +173,5 @@ MonoBehaviour:
   crouchSpeed: 2.5
   isInShadow: 0
   isCrouching: 0
-  colorNormal: {r: 1, g: 1, b: 1, a: 1}
   colorShadow: {r: 0.2, g: 0.3, b: 0.8, a: 0.7}
   colorExposed: {r: 1, g: 0.2, b: 0.2, a: 1}

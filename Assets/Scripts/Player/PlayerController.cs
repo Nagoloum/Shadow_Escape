@@ -1,3 +1,5 @@
+// Assets/Scripts/Player/PlayerController.cs
+// Compatible avec le NOUVEAU Input System (Input System Package)
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
@@ -95,11 +97,16 @@ public class PlayerController : MonoBehaviour
     {
         rb.linearVelocity = moveInput.normalized * currentSpeed;
 
+        // NE CHANGE PAS LA ROTATION - le sprite garde son orientation
+        // Si tu veux que le sprite regarde dans la direction du mouvement,
+        // décommente les lignes ci-dessous et utilise un sprite qui regarde vers le haut
+        /*
         if (moveInput != Vector2.zero)
         {
             float angle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg - 90f;
             rb.rotation = angle;
         }
+        */
     }
 
     // ══════════════════════════════════════════════

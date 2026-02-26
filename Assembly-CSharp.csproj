@@ -54,6 +54,8 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Environment\Door.cs" />
     <Compile Include="Assets\Scripts\Environment\ExitZone.cs" />
+    <Compile Include="Assets\Scripts\EventSystemPersist.cs" />
+    <Compile Include="Assets\Scripts\PersistentUI.cs" />
     <Compile Include="Assets\Scripts\Managers\LevelManager.cs" />
     <Compile Include="Assets\Scripts\Managers\OptionsManager.cs" />
     <Compile Include="Assets\Scripts\Managers\LevelSelectManager.cs" />

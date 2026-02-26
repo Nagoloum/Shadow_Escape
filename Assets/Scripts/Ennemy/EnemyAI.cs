@@ -142,20 +142,26 @@ public class EnemyAI : MonoBehaviour
     {
         currentState = newState;
 
-        // Icônes
+        // Icônes (! et ?)
         if (exclamationMark != null) exclamationMark.SetActive(newState == EnemyState.Alert);
         if (questionMark != null) questionMark.SetActive(newState == EnemyState.Suspicious || newState == EnemyState.Search);
 
-        // Couleur du corps
+        // Couleur du corps (TOUJOURS visible, même si icônes buguent)
         if (bodyRenderer != null)
         {
             switch (newState)
             {
-                case EnemyState.Patrol: bodyRenderer.color = colorPatrol; break;
-                case EnemyState.Suspicious: bodyRenderer.color = colorSuspicious; break;
-                case EnemyState.Alert: bodyRenderer.color = colorAlert; break;
-                case EnemyState.Search: bodyRenderer.color = colorSuspicious; break;
-                case EnemyState.ReturnPatrol: bodyRenderer.color = colorPatrol; break;
+                case EnemyState.Patrol:
+                case EnemyState.ReturnPatrol:
+                    bodyRenderer.color = colorPatrol;     // Blanc
+                    break;
+                case EnemyState.Suspicious:
+                case EnemyState.Search:
+                    bodyRenderer.color = colorSuspicious; // Jaune
+                    break;
+                case EnemyState.Alert:
+                    bodyRenderer.color = colorAlert;      // Rouge
+                    break;
             }
         }
     }
@@ -311,9 +317,12 @@ public class EnemyAI : MonoBehaviour
         Vector2 direction = (target - (Vector2)transform.position).normalized;
         rb.linearVelocity = direction * speed;
 
-        // Rotation vers la direction
+        // NE CHANGE PAS LA ROTATION - le sprite garde son orientation
+        // Si tu veux que le sprite regarde dans la direction, décommente :
+        
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
         rb.rotation = angle;
+        
     }
 
     // ══════════════════════════════════════════════

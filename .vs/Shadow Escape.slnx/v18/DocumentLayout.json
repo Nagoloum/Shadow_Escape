@@ -3,16 +3,16 @@
   "WorkspaceRootPath": "C:\\Users\\ASUS\\Shadow Escape\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Player\\PlayerController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\Player\\PlayerController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\EventSystemPersist.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\EventSystemPersist.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|c:\\users\\asus\\shadow escape\\assets\\scripts\\managers\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\uimanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|c:\\users\\asus\\shadow escape\\assets\\scripts\\managers\\optionsmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\optionsmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|c:\\users\\asus\\shadow escape\\assets\\scripts\\persistentui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\persistentui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -27,15 +27,14 @@
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "OptionsManager.cs",
-              "DocumentMoniker": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Managers\\OptionsManager.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\OptionsManager.cs",
-              "ToolTip": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Managers\\OptionsManager.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Managers\\OptionsManager.cs",
-              "ViewState": "AgIAAN4AAAAAAAAAAAD4v68AAAA3AAAAAAAAAA==",
+              "Title": "PersistentUI.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\PersistentUI.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\PersistentUI.cs",
+              "ToolTip": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\PersistentUI.cs",
+              "RelativeToolTip": "Assets\\Scripts\\PersistentUI.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-17T16:59:52.803Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-02-26T06:43:08.455Z"
             },
             {
               "$type": "Document",
@@ -45,22 +44,22 @@
               "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\UIManager.cs",
               "ToolTip": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Managers\\UIManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\Managers\\UIManager.cs",
-              "ViewState": "AgIAALwBAAAAAAAAAADwv8YBAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAIEAAAAAAAAAAAAiwJMAAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-17T16:55:18.035Z",
+              "WhenOpened": "2026-02-26T06:56:28.564Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "PlayerController.cs",
-              "DocumentMoniker": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Player\\PlayerController.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Player\\PlayerController.cs",
-              "ToolTip": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\Player\\PlayerController.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Player\\PlayerController.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Title": "EventSystemPersist.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\EventSystemPersist.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\EventSystemPersist.cs",
+              "ToolTip": "C:\\Users\\ASUS\\Shadow Escape\\Assets\\Scripts\\EventSystemPersist.cs",
+              "RelativeToolTip": "Assets\\Scripts\\EventSystemPersist.cs",
+              "ViewState": "AgIAABYAAAAAAAAAAAAQwCsAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-17T16:51:29.684Z",
+              "WhenOpened": "2026-02-26T19:51:39.129Z",
               "EditorCaption": ""
             }
           ]

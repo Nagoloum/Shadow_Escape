@@ -17,7 +17,15 @@ public class UIManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
+
+            // Déplace UIManager à la racine si nécessaire
+            if (transform.parent != null)
+            {
+                transform.SetParent(null);
+            }
+
             DontDestroyOnLoad(gameObject);
+            Debug.Log("✓ UIManager préservé entre les scènes");
         }
         else
         {
@@ -116,19 +124,40 @@ public class UIManager : MonoBehaviour
         if (isTimerRunning && LevelManager.Instance != null)
             SafeSetText(timerText, FormatTime(LevelManager.Instance.GetCurrentTime()));
 
-        // Escape → Pause en jeu / Back ailleurs
-        if (Keyboard.current == null) return;
-
-        if (Keyboard.current.escapeKey.wasPressedThisFrame)
+        // Vérifier que le clavier est disponible
+        if (Keyboard.current == null)
         {
+            Debug.LogWarning("⚠️ Keyboard.current est NULL - Input System pas configuré ?");
+            return;
+        }
+
+        // ESC ou ESPACE pour pause
+        if (Keyboard.current.escapeKey.wasPressedThisFrame ||
+            Keyboard.current.spaceKey.wasPressedThisFrame)
+        {
+            Debug.Log("🎮 Touche pause détectée (ESC ou ESPACE)");
+
             // Si le jeu tourne → pause
             if (gameHUD != null && gameHUD.activeSelf)
             {
+                Debug.Log("✓ GameHUD actif → Ouverture menu pause");
                 ShowPauseMenu();
             }
-            // Sinon → Back (comme appuyer sur le bouton Back)
+            // Si en pause → reprendre (toggle)
+            else if (pauseMenu != null && pauseMenu.activeSelf)
+            {
+                Debug.Log("✓ Déjà en pause → Fermeture menu pause");
+                HidePauseMenu();
+            }
+            // Sinon → retour (dans les menus)
             else
             {
+                Debug.Log("⚠️ Ni GameHUD ni PauseMenu actif");
+                if (gameHUD != null)
+                    Debug.Log("   GameHUD existe mais est inactif");
+                else
+                    Debug.Log("   GameHUD est NULL !");
+
                 GoBack();
             }
         }
@@ -202,22 +231,46 @@ public class UIManager : MonoBehaviour
 
     public void ShowGameHUD()
     {
+        Debug.Log("📋 ShowGameHUD() appelé");
+
+        if (gameHUD == null)
+        {
+            Debug.LogError("❌ GameHUD est NULL ! Assigne-le dans l'Inspector");
+            return;
+        }
+
         GoToScreen(gameHUD);
         isTimerRunning = true;
         Time.timeScale = 1f;
+
+        Debug.Log("✓ GameHUD affiché. gameHUD.activeSelf = " + gameHUD.activeSelf);
     }
 
     // Pause : s'ouvre PAR-DESSUS le HUD (HUD reste en arriere)
     public void ShowPauseMenu()
     {
+        Debug.Log("📋 ShowPauseMenu() appelé");
+
+        if (pauseMenu == null)
+        {
+            Debug.LogError("❌ PauseMenu est NULL ! Assigne-le dans l'Inspector");
+            return;
+        }
+
+        Debug.Log("   Activation de : " + pauseMenu.name);
         PushScreen(pauseMenu);
         Time.timeScale = 0f;
+
+        Debug.Log("✓ Menu pause affiché. Time.timeScale = " + Time.timeScale);
+        Debug.Log("   PauseMenu.activeSelf = " + pauseMenu.activeSelf);
     }
 
     public void HidePauseMenu()
     {
+        Debug.Log("📋 HidePauseMenu() appelé");
         GoBack();
         Time.timeScale = 1f;
+        Debug.Log("✓ Menu pause fermé. Time.timeScale = " + Time.timeScale);
     }
 
     // Options : s'ouvre PAR-DESSUS l'ecran actuel (MainMenu ou PauseMenu)
