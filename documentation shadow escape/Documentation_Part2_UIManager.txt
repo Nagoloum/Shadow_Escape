@@ -1,0 +1,614 @@
+═══════════════════════════════════════════════════════════════
+SHADOW ESCAPE — DOCUMENTATION TECHNIQUE
+PARTIE 2 : SYSTÈME DE GESTION UI (UIManager)
+═══════════════════════════════════════════════════════════════
+
+
+════════════════════════════════════════════════════════════════
+2.1 - UIMANAGER : GESTION DE L'INTERFACE UTILISATEUR
+════════════════════════════════════════════════════════════════
+
+RÔLE :
+UIManager est le cerveau de toute l'interface utilisateur du jeu.
+Il gère l'affichage/masquage des menus, la mise à jour du HUD,
+et la navigation entre les écrans.
+
+FICHIER : Assets/Scripts/Managers/UIManager.cs
+LIGNES : ~460 lignes
+ATTACHÉ À : GameObject "UIManager" (racine de MainMenu)
+
+PATTERN DE CONCEPTION : Singleton
+Un seul UIManager existe dans tout le jeu. Accessible globalement
+via UIManager.Instance.
+
+
+────────────────────────────────────────────────────────────────
+STRUCTURE COMPLÈTE DU SCRIPT
+────────────────────────────────────────────────────────────────
+
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
+using TMPro;
+using System.Collections.Generic;
+
+public class UIManager : MonoBehaviour
+{
+    // SECTION 1 : Singleton
+    // SECTION 2 : Références aux écrans
+    // SECTION 3 : Références aux éléments HUD
+    // SECTION 4 : Pile d'écrans (stack)
+    // SECTION 5 : Variables internes
+    // SECTION 6 : Méthodes d'initialisation
+    // SECTION 7 : Navigation entre écrans
+    // SECTION 8 : Méthodes de mise à jour HUD
+    // SECTION 9 : Callbacks des boutons
+    // SECTION 10 : Méthodes utilitaires
+}
+
+
+────────────────────────────────────────────────────────────────
+SECTION 1 : SINGLETON
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+public static UIManager Instance { get; private set; }
+
+void Awake()
+{
+    if (Instance == null)
+    {
+        Instance = this;
+        
+        if (transform.parent != null)
+        {
+            transform.SetParent(null);
+        }
+        
+        DontDestroyOnLoad(gameObject);
+        Debug.Log("✓ UIManager préservé entre les scènes");
+    }
+    else
+    {
+        Destroy(gameObject);
+    }
+}
+
+EXPLICATION LIGNE PAR LIGNE :
+══════════════════════════════
+
+Line 1 : public static UIManager Instance
+  • static = une seule variable partagée par toutes les instances
+  • Instance = référence vers LE UIManager qui persiste
+  • { get; private set; } = lecture publique, écriture privée
+  • Permet aux autres scripts d'accéder via UIManager.Instance
+  
+  USAGE :
+  UIManager.Instance.ShowVictoryScreen(time, detections, score);
+
+Line 5 : if (Instance == null)
+  • Vérifie si c'est la première instance créée
+  • Si oui, on la garde comme instance persistante
+
+Line 7 : Instance = this;
+  • Assigne cette instance à la variable static
+  • Maintenant Instance pointe vers ce GameObject
+
+Line 9-12 : transform.SetParent(null)
+  • DontDestroyOnLoad ne marche QUE sur les objets racine
+  • Si UIManager est enfant d'un autre objet, on le déplace
+    à la racine avec SetParent(null)
+
+Line 14 : DontDestroyOnLoad(gameObject)
+  • Déplace ce GameObject dans la zone "DontDestroyOnLoad"
+  • Il survivra aux changements de scène
+
+Line 18 : else { Destroy(gameObject); }
+  • Si une 2e instance est créée (ex: retour au MainMenu),
+    on la détruit immédiatement
+  • Évite les doublons
+
+
+────────────────────────────────────────────────────────────────
+SECTION 2 : RÉFÉRENCES AUX ÉCRANS
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+[Header("=== SCREENS ===")]
+public GameObject mainMenu;
+public GameObject gameHUD;
+public GameObject pauseMenu;
+public GameObject victoryScreen;
+public GameObject defeatScreen;
+public GameObject levelSelectScreen;
+public GameObject optionsScreen;
+
+[Header("=== MAIN MENU BUTTONS ===")]
+public GameObject newGameButton;
+public GameObject continueButton;
+
+EXPLICATION :
+═════════════
+
+Ces champs sont remplis dans l'Inspector Unity.
+Ils contiennent des références vers les Panels UI dans le Canvas.
+
+mainMenu : Panel avec le menu principal (New Game, Continue, etc.)
+gameHUD : Panel avec l'interface en jeu (timer, clés, objectif)
+pauseMenu : Panel du menu pause (Resume, Restart, Quit)
+victoryScreen : Panel affiché à la fin d'un niveau réussi
+defeatScreen : Panel affiché en cas d'échec
+levelSelectScreen : Panel de sélection de niveau
+optionsScreen : Panel des paramètres audio/vidéo
+
+newGameButton, continueButton :
+  • Références aux boutons du mainMenu
+  • Utilisées pour afficher/masquer "Continue" selon progression
+
+COMMENT C'EST ASSIGNÉ :
+  1. Dans Unity, sélectionne UIManager
+  2. Regarde l'Inspector
+  3. Glisse chaque Panel depuis Canvas vers le champ correspondant
+
+
+────────────────────────────────────────────────────────────────
+SECTION 3 : RÉFÉRENCES AUX ÉLÉMENTS HUD
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+[Header("=== HUD : TOP BAR ===")]
+public TextMeshProUGUI levelNameText;
+public TextMeshProUGUI timerText;
+
+[Header("=== HUD : PLAYER STATUS ===")]
+public Image           visibilityIndicator;
+public TextMeshProUGUI statusText;
+public Color           hiddenColor  = new Color(0f, 0.4f, 1f, 1f);
+public Color           exposedColor = new Color(1f, 0.2f, 0.2f, 1f);
+
+[Header("=== HUD : KEYS ===")]
+public TextMeshProUGUI redKeyCount;
+public TextMeshProUGUI blueKeyCount;
+public TextMeshProUGUI greenKeyCount;
+public TextMeshProUGUI yellowKeyCount;
+
+[Header("=== HUD : BOTTOM BAR ===")]
+public TextMeshProUGUI objectiveText;
+public TextMeshProUGUI interactionPrompt;
+
+[Header("=== VICTORY SCREEN ===")]
+public TextMeshProUGUI victoryTimeText;
+public TextMeshProUGUI victoryDetectionsText;
+public TextMeshProUGUI victoryScoreText;
+public Image[]         victoryStars;
+public GameObject      nextLevelButton;
+
+[Header("=== DEFEAT SCREEN ===")]
+public TextMeshProUGUI defeatReasonText;
+
+EXPLICATION :
+═════════════
+
+Ces champs pointent vers les éléments TextMeshPro et Images
+à l'intérieur des Panels.
+
+HIÉRARCHIE TYPIQUE :
+Canvas/
+├── GameHUD/
+│   ├── TopBar/
+│   │   ├── LevelNameText  ← levelNameText
+│   │   └── TimerText      ← timerText
+│   ├── PlayerStatus/
+│   │   ├── VisibilityIndicator (Image)  ← visibilityIndicator
+│   │   └── StatusText                   ← statusText
+│   ├── Keys/
+│   │   ├── RedKeyText     ← redKeyCount
+│   │   ├── BlueKeyText    ← blueKeyCount
+│   │   ├── GreenKeyText   ← greenKeyCount
+│   │   └── YellowKeyText  ← yellowKeyCount
+│   └── BottomBar/
+│       ├── ObjectiveText       ← objectiveText
+│       └── InteractionPrompt   ← interactionPrompt
+
+USAGE :
+  SafeSetText(levelNameText, "Level 1 - The Corridor");
+  SafeSetText(timerText, "01:23");
+  visibilityIndicator.color = hiddenColor;
+
+
+────────────────────────────────────────────────────────────────
+SECTION 4 : PILE D'ÉCRANS (STACK)
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+private Stack<GameObject> screenStack = new Stack<GameObject>();
+
+public void GoBack()
+{
+    if (screenStack.Count == 0) return;
+    
+    GameObject current = GetCurrentActiveScreen();
+    if (current != null) SafeSetActive(current, false);
+    
+    GameObject previous = screenStack.Pop();
+    SafeSetActive(previous, true);
+    
+    if (previous == pauseMenu)
+        Time.timeScale = 0f;
+}
+
+void PushScreen(GameObject newScreen)
+{
+    GameObject current = GetCurrentActiveScreen();
+    if (current != null)
+    {
+        screenStack.Push(current);
+        SafeSetActive(current, false);
+    }
+    
+    SafeSetActive(newScreen, true);
+}
+
+void GoToScreen(GameObject newScreen)
+{
+    screenStack.Clear();
+    HideAllScreens();
+    SafeSetActive(newScreen, true);
+}
+
+EXPLICATION :
+═════════════
+
+La pile d'écrans permet de naviguer "en arrière" dans les menus.
+
+CONCEPT :
+• Quand on ouvre un écran "par-dessus" un autre (ex: Options
+  depuis MainMenu), on EMPILE l'écran actuel
+• Quand on fait "Back", on DÉPILE pour revenir à l'écran précédent
+
+EXEMPLE DE FLUX :
+1. MainMenu actif → pile = []
+2. Ouvre Options → MainMenu empilé → pile = [MainMenu]
+3. Options actif
+4. GoBack() → Dépile MainMenu → pile = []
+5. MainMenu actif à nouveau
+
+MÉTHODES :
+
+PushScreen(newScreen) :
+  • Empile l'écran actuel
+  • Désactive l'écran actuel
+  • Active le nouvel écran
+  • Utilisé pour : Options, LevelSelect, Pause
+
+GoToScreen(newScreen) :
+  • Vide la pile (oublie l'historique)
+  • Masque tous les écrans
+  • Active le nouvel écran
+  • Utilisé pour : MainMenu, GameHUD, Victory, Defeat
+
+GoBack() :
+  • Dépile l'écran précédent
+  • Désactive l'écran actuel
+  • Active l'écran déplié
+  • Utilisé pour : Boutons "Back", touche ESC
+
+EXEMPLE D'USAGE :
+
+public void ShowOptions()
+{
+    PushScreen(optionsScreen);  // Options PAR-DESSUS l'écran actuel
+}
+
+public void ShowMainMenu()
+{
+    GoToScreen(mainMenu);  // MainMenu, oublie l'historique
+}
+
+public void OnBackButton()
+{
+    GoBack();  // Retour à l'écran précédent
+}
+
+
+────────────────────────────────────────────────────────────────
+SECTION 5 : VARIABLES INTERNES
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+private bool isTimerRunning = false;
+
+EXPLICATION :
+═════════════
+
+isTimerRunning : Contrôle si le timer doit être mis à jour ou non
+  • true pendant le gameplay (GameHUD actif)
+  • false dans les menus
+  
+  Mis à true dans ShowGameHUD()
+  Mis à false dans ShowVictoryScreen() et ShowDefeatScreen()
+
+
+────────────────────────────────────────────────────────────────
+SECTION 6 : MÉTHODES D'INITIALISATION
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+void Start()
+{
+    ShowMainMenu();
+}
+
+void Update()
+{
+    // Timer HUD
+    if (isTimerRunning && LevelManager.Instance != null)
+        SafeSetText(timerText, FormatTime(LevelManager.Instance.GetCurrentTime()));
+
+    if (Keyboard.current == null) return;
+
+    // ESC ou ESPACE pour pause
+    if (Keyboard.current.escapeKey.wasPressedThisFrame || 
+        Keyboard.current.spaceKey.wasPressedThisFrame)
+    {
+        if (gameHUD != null && gameHUD.activeSelf)
+        {
+            ShowPauseMenu();
+        }
+        else if (pauseMenu != null && pauseMenu.activeSelf)
+        {
+            HidePauseMenu();
+        }
+        else
+        {
+            GoBack();
+        }
+    }
+}
+
+EXPLICATION :
+═════════════
+
+Start() :
+  • Appelée UNE FOIS au démarrage
+  • Affiche le MainMenu
+  • Point d'entrée du jeu
+
+Update() :
+  • Appelée CHAQUE FRAME (~60 fois par seconde)
+  • 3 responsabilités :
+  
+  1) MISE À JOUR DU TIMER :
+     if (isTimerRunning && LevelManager.Instance != null)
+       • Vérifie que le timer doit tourner
+       • Récupère le temps actuel depuis LevelManager
+       • Formate "MM:SS" et l'affiche dans timerText
+  
+  2) VÉRIFICATION CLAVIER :
+     if (Keyboard.current == null) return;
+       • Vérifie que le Input System fonctionne
+       • Si null → sort de la fonction (évite erreurs)
+  
+  3) GESTION TOUCHE PAUSE :
+     if (escapeKey ou spaceKey)
+       • Cas A : GameHUD actif → Ouvre pause
+       • Cas B : PauseMenu actif → Ferme pause (toggle)
+       • Cas C : Autre écran → GoBack()
+
+DÉTAIL DU SYSTÈME DE PAUSE :
+
+Keyboard.current.escapeKey.wasPressedThisFrame
+  • Keyboard.current : Accès au clavier (Input System)
+  • escapeKey : La touche ESC
+  • wasPressedThisFrame : true pendant 1 frame quand appuyée
+    (équivalent de GetKeyDown dans l'ancien système)
+
+Condition 1 : gameHUD.activeSelf
+  • Si GameHUD est actif → on est en jeu
+  • Ouvre le menu pause
+
+Condition 2 : pauseMenu.activeSelf
+  • Si PauseMenu est déjà actif
+  • Ferme le menu pause (comportement toggle)
+
+Condition 3 : Sinon
+  • On est dans un autre menu (Options, LevelSelect)
+  • GoBack() pour revenir à l'écran précédent
+
+
+────────────────────────────────────────────────────────────────
+SECTION 7 : NAVIGATION ENTRE ÉCRANS
+────────────────────────────────────────────────────────────────
+
+CODE ET EXPLICATIONS :
+═══════════════════════
+
+public void ShowMainMenu()
+{
+    GoToScreen(mainMenu);
+    isTimerRunning = false;
+    Time.timeScale = 1f;
+    RefreshMainMenuButtons();
+}
+
+FONCTIONNALITÉ : Affiche le menu principal
+QUAND : Au démarrage, ou quand joueur clique "Main Menu"
+
+Line 3 : GoToScreen(mainMenu)
+  • Vide la pile d'écrans
+  • Désactive tous les panels
+  • Active mainMenu
+
+Line 4 : isTimerRunning = false
+  • Arrête la mise à jour du timer
+
+Line 5 : Time.timeScale = 1f
+  • Remet le jeu à vitesse normale (au cas où il était en pause)
+  • Time.timeScale contrôle la vitesse du temps Unity :
+    - 1f = normal
+    - 0f = pause
+    - 2f = 2x plus rapide
+
+Line 6 : RefreshMainMenuButtons()
+  • Affiche "Continue" si niveau 2+ débloqué
+  • Masque "Continue" sinon
+
+
+──────────────────────────────────────────────────────────────
+
+public void ShowGameHUD()
+{
+    GoToScreen(gameHUD);
+    isTimerRunning = true;
+    Time.timeScale = 1f;
+}
+
+FONCTIONNALITÉ : Affiche le HUD de jeu (timer, clés, objectif)
+QUAND : LevelManager détecte qu'un niveau se charge
+
+Line 3 : GoToScreen(gameHUD)
+  • Masque tous les autres panels
+  • Active gameHUD
+
+Line 4 : isTimerRunning = true
+  • Active la mise à jour du timer dans Update()
+
+Line 5 : Time.timeScale = 1f
+  • S'assure que le jeu n'est pas en pause
+
+
+──────────────────────────────────────────────────────────────
+
+public void ShowPauseMenu()
+{
+    PushScreen(pauseMenu);
+    Time.timeScale = 0f;
+}
+
+FONCTIONNALITÉ : Affiche le menu pause
+QUAND : Joueur appuie sur ESC/Espace en jeu
+
+Line 3 : PushScreen(pauseMenu)
+  • Empile l'écran actuel (GameHUD)
+  • GameHUD reste en arrière-plan (masqué mais pas détruit)
+  • Active pauseMenu
+
+Line 4 : Time.timeScale = 0f
+  • FIGE LE JEU
+  • Tout s'arrête : mouvement, animations, physics, Update()
+  • SAUF les scripts UI (qui utilisent Time.unscaledDeltaTime)
+
+
+──────────────────────────────────────────────────────────────
+
+public void HidePauseMenu()
+{
+    GoBack();
+    Time.timeScale = 1f;
+}
+
+FONCTIONNALITÉ : Ferme le menu pause
+QUAND : Joueur clique "Resume" ou réappuie sur ESC
+
+Line 3 : GoBack()
+  • Dépile l'écran précédent (GameHUD)
+  • Désactive pauseMenu
+  • Réactive GameHUD
+
+Line 4 : Time.timeScale = 1f
+  • DÉGÈLE LE JEU
+  • Tout reprend
+
+
+──────────────────────────────────────────────────────────────
+
+public void ShowVictoryScreen(float time, int detections, int score)
+{
+    GoToScreen(victoryScreen);
+    isTimerRunning = false;
+    Time.timeScale = 1f;
+
+    SafeSetText(victoryTimeText, "Time: " + FormatTime(time));
+    SafeSetText(victoryDetectionsText, "Detections: " + detections);
+    SafeSetText(victoryScoreText, "Score: " + score);
+
+    if (victoryStars != null)
+    {
+        int stars = CalculateStars(score);
+        for (int i = 0; i < victoryStars.Length; i++)
+            if (victoryStars[i] != null)
+                victoryStars[i].color = (i < stars) ? Color.yellow : Color.gray;
+    }
+
+    if (nextLevelButton != null && LevelManager.Instance != null)
+        nextLevelButton.SetActive(LevelManager.Instance.GetCurrentLevelIndex() < 5);
+}
+
+FONCTIONNALITÉ : Affiche l'écran de victoire avec statistiques
+QUAND : LevelManager.CompleteLevel() appelé (joueur atteint sortie)
+
+PARAMÈTRES :
+  time : Temps écoulé en secondes
+  detections : Nombre de fois détecté
+  score : Score calculé par LevelManager
+
+Line 3 : GoToScreen(victoryScreen)
+  • Affiche l'écran de victoire
+
+Line 7-9 : Affiche les stats
+  • FormatTime(time) convertit 83.5 → "01:23"
+  • Affiche temps, détections, score dans les TextMeshPro
+
+Line 11-17 : Affiche les étoiles
+  • CalculateStars(score) retourne 0, 1, 2 ou 3
+  • Pour chaque étoile :
+    - Jaune si i < stars (étoile obtenue)
+    - Gris sinon (étoile manquée)
+  
+  Exemple : score = 750 → 2 étoiles
+    Star[0] → Jaune (0 < 2)
+    Star[1] → Jaune (1 < 2)
+    Star[2] → Gris (2 < 2 est faux)
+
+Line 19-20 : Gère le bouton "Next Level"
+  • Si niveau actuel < 5 → Affiche le bouton
+  • Si niveau 5 (dernier) → Masque le bouton
+    (pas de niveau 6, donc pas de "Next")
+
+
+──────────────────────────────────────────────────────────────
+
+public void ShowDefeatScreen(string reason)
+{
+    GoToScreen(defeatScreen);
+    SafeSetText(defeatReasonText, reason);
+    isTimerRunning = false;
+    Time.timeScale = 1f;
+}
+
+FONCTIONNALITÉ : Affiche l'écran d'échec
+QUAND : LevelManager.FailLevel() appelé
+
+PARAMÈTRE :
+  reason : Message expliquant l'échec
+    - "Too many detections!"
+    - "Time's up!"
+
+Line 3 : GoToScreen(defeatScreen)
+  • Affiche l'écran d'échec
+
+Line 4 : SafeSetText(defeatReasonText, reason)
+  • Affiche la raison de l'échec
+
+
+════════════════════════════════════════════════════════════════
+FIN DE LA PARTIE 2
+════════════════════════════════════════════════════════════════
+
+Suite dans Partie 3 : Méthodes de mise à jour HUD + Callbacks

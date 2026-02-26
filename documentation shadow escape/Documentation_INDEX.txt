@@ -1,0 +1,337 @@
+═══════════════════════════════════════════════════════════════
+SHADOW ESCAPE — DOCUMENTATION TECHNIQUE COMPLÈTE
+INDEX DES FICHIERS
+═══════════════════════════════════════════════════════════════
+
+Cette documentation couvre TOUT le projet Shadow Escape :
+architecture, chaque script, chaque fonctionnalité, ligne par ligne.
+
+
+═══════════════════════════════════════════════════════════════
+📚 FICHIERS DE DOCUMENTATION
+═══════════════════════════════════════════════════════════════
+
+PARTIE 1 : ARCHITECTURE GÉNÉRALE
+📄 Documentation_Part1_Architecture.txt
+   • Vue d'ensemble du projet
+   • Structure des scènes (MainMenu, Level1-5)
+   • Système DontDestroyOnLoad expliqué en détail
+   • Flow complet du jeu (démarrage → victoire)
+   • Diagrammes de flux
+
+PARTIE 2 : UIManager
+📄 Documentation_Part2_UIManager.txt
+   • Singleton pattern expliqué
+   • Toutes les références UI (écrans, boutons, textes)
+   • Système de pile d'écrans (navigation)
+   • Chaque méthode expliquée ligne par ligne :
+     - ShowMainMenu(), ShowGameHUD(), ShowPauseMenu()
+     - ShowVictoryScreen(), ShowDefeatScreen()
+     - Update() avec gestion pause
+   • Exemples concrets d'utilisation
+
+PARTIE 3 : LevelManager et Scoring
+📄 Documentation_Part3_LevelManager.txt
+   • Structure LevelData (données des niveaux)
+   • Chargement de niveaux (LoadLevel)
+   • Système de détection (OnLevelLoaded)
+   • Timer et Update()
+   • Système de détections (AddDetection)
+   • CompleteLevel() avec formule de score détaillée
+   • CalculateScore() : 1000 - temps - (détections × 100) + bonus
+   • CalculateStars() : Seuils 900/600/300
+   • Sauvegarde avec PlayerPrefs
+
+PARTIE 4 : PlayerController
+📄 Documentation_Part4_PlayerController.txt
+   • Composants requis (Rigidbody2D, Collider)
+   • Système d'input (nouveau Input System)
+   • Mouvement physique (FixedUpdate)
+   • Système de visibilité (shadowCount, EnterShadow, ExitShadow)
+   • Inventaire de clés (Dictionary<KeyColor, int>)
+   • Système d'interaction (TryInteract, Physics2D.OverlapCircle)
+   • Détection par les gardes (GetSpotted)
+
+
+═══════════════════════════════════════════════════════════════
+📋 SCRIPTS DÉTAILLÉS
+═══════════════════════════════════════════════════════════════
+
+MANAGERS (Assets/Scripts/Managers/)
+────────────────────────────────────
+✓ UIManager.cs           (~460 lignes) - Gestion UI complète
+✓ LevelManager.cs        (~250 lignes) - Niveaux, scoring, timer
+  OptionsManager.cs      (~100 lignes) - Volume audio
+  LevelSelectManager.cs  (~80 lignes)  - Interface sélection niveau
+
+PLAYER (Assets/Scripts/Player/)
+────────────────────────────────────
+✓ PlayerController.cs    (~180 lignes) - Mouvement, interactions
+
+ENEMY (Assets/Scripts/Enemy/)
+────────────────────────────────────
+  EnemyAI.cs             (~340 lignes) - IA 5 états, vision, détection
+
+ENVIRONMENT (Assets/Scripts/Environment/)
+────────────────────────────────────
+  ShadowZone.cs          (~20 lignes)  - Zones d'ombre
+  Door.cs                (~60 lignes)  - Portes (3 types)
+  KeyPickup.cs           (~20 lignes)  - Clés ramassables
+  ButtonSwitch.cs        (~40 lignes)  - Interrupteurs
+  ExitZone.cs            (~15 lignes)  - Sortie de niveau
+  InteractionZone.cs     (~30 lignes)  - Prompts "Press E"
+
+DATA (Assets/Scripts/)
+────────────────────────────────────
+  LevelData.cs           (~15 lignes)  - Struct données niveau
+  KeyColor.cs            (~5 lignes)   - Enum couleurs
+  CanvasPersist.cs       (~20 lignes)  - Persistance Canvas
+
+
+═══════════════════════════════════════════════════════════════
+🔑 CONCEPTS CLÉS EXPLIQUÉS
+═══════════════════════════════════════════════════════════════
+
+PATTERN SINGLETON
+─────────────────
+Un seul UIManager/LevelManager existe dans tout le jeu.
+Accessible globalement via Instance.
+Détruit les doublons automatiquement.
+
+Code type :
+    public static UIManager Instance { get; private set; }
+    void Awake() {
+        if (Instance == null) {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        } else {
+            Destroy(gameObject);
+        }
+    }
+
+DONTDESTROYONLOAD
+─────────────────
+Fonction Unity qui préserve un GameObject entre les scènes.
+CONTRAINTE : Ne marche QUE sur les objets à la RACINE.
+Objets persistants : Canvas, UIManager, LevelManager.
+
+PILE D'ÉCRANS (STACK)
+─────────────────
+Permet la navigation "Back" dans les menus.
+PushScreen() : Empile l'écran actuel, affiche le nouveau
+GoBack() : Dépile, réaffiche le précédent
+GoToScreen() : Vide la pile, affiche le nouvel écran
+
+NOUVEAU INPUT SYSTEM
+────────────────────
+Remplace Input.GetKey() par Keyboard.current.key.isPressed
+Nécessite : using UnityEngine.InputSystem;
+Configuration : Project Settings → Active Input Handling → Both
+
+SYSTÈME DE VISIBILITÉ
+──────────────────────
+shadowCount : Compteur de zones d'ombre actives
+Permet de gérer les chevauchements de zones
+isInShadow = true si shadowCount > 0
+
+
+═══════════════════════════════════════════════════════════════
+🎮 FONCTIONNALITÉS PAR SCRIPT
+═══════════════════════════════════════════════════════════════
+
+UIManager.cs
+────────────
+✓ Affichage/masquage de tous les menus
+✓ Mise à jour du HUD (timer, clés, visibilité)
+✓ Gestion de la pause (ESC/Espace)
+✓ Navigation avec pile d'écrans
+✓ Écrans victoire/défaite avec stats
+✓ Boutons New Game/Continue
+✓ 460 lignes, 20+ méthodes publiques
+
+LevelManager.cs
+───────────────
+✓ Chargement de niveaux (SceneManager)
+✓ Timer avec limite optionnelle
+✓ Système de détections (compteur + limite)
+✓ Calcul de score : 1000 - temps - détections*100 + bonus
+✓ Attribution étoiles (3★/2★/1★)
+✓ Sauvegarde progression (PlayerPrefs)
+✓ Déverrouillage niveaux suivants
+✓ 250 lignes, 15+ méthodes publiques
+
+PlayerController.cs
+───────────────────
+✓ Déplacement 8 directions (WASD + Flèches)
+✓ Accroupissement (Shift) : vitesse réduite
+✓ Interaction (E) : Portes + Boutons
+✓ Inventaire de clés (Dictionary)
+✓ Système de visibilité (shadowCount)
+✓ Feedback visuel (couleur bleue/rouge)
+✓ 180 lignes, 12+ méthodes publiques
+
+EnemyAI.cs
+──────────
+✓ Machine à états : Patrol, Suspicious, Alert, Search, Return
+✓ Système de vision : Cône + rayon de suspicion
+✓ Détection du joueur avec règles complexes :
+  - Ombre + Accroupi = Invisible toujours
+  - Ombre + Debout = Visible à 50% range
+  - Lumière = Visible à 100% range
+✓ Patrouille avec waypoints
+✓ Poursuite du joueur
+✓ Recherche de la dernière position
+✓ Feedback visuel (couleur + icônes ! et ?)
+✓ 340 lignes, 20+ méthodes privées
+
+ShadowZone.cs
+─────────────
+✓ Trigger zone : OnTriggerEnter/Exit
+✓ Appelle player.EnterShadow()/ExitShadow()
+✓ 20 lignes, ultra simple
+
+Door.cs
+───────
+✓ 3 types : Normal, Locked, Button
+✓ TryOpen() : Vérifie clé si Locked
+✓ Open() : Désactive collider + sprite
+✓ 60 lignes
+
+KeyPickup.cs
+────────────
+✓ OnTriggerEnter : Ajoute clé au joueur
+✓ Destroy(gameObject) : Disparaît après ramassage
+✓ 20 lignes
+
+ButtonSwitch.cs
+───────────────
+✓ Tableau doorsToOpen[] : Ouvre plusieurs portes
+✓ Press() : Active par le joueur (E)
+✓ staysPressed : Une fois ou réutilisable
+✓ 40 lignes
+
+ExitZone.cs
+───────────
+✓ OnTriggerEnter : Détecte joueur (tag "Player")
+✓ Appelle LevelManager.CompleteLevel()
+✓ 15 lignes, minimal
+
+
+═══════════════════════════════════════════════════════════════
+📊 FLOW DE DONNÉES COMPLETS
+═══════════════════════════════════════════════════════════════
+
+DÉMARRAGE DU JEU
+────────────────
+1. Unity charge MainMenu.unity
+2. CanvasPersist.Awake() → DontDestroyOnLoad(Canvas)
+3. UIManager.Awake() → DontDestroyOnLoad(UIManager)
+4. LevelManager.Awake() → DontDestroyOnLoad(LevelManager)
+5. UIManager.Start() → ShowMainMenu()
+6. MainMenu s'affiche
+
+NOUVELLE PARTIE
+───────────────
+1. Clic "New Game"
+2. UIManager.OnNewGameButton()
+3. LevelManager.ResetAllProgress()
+4. LevelManager.LoadLevel(1)
+5. SceneManager.LoadScene(1)
+6. Level1 se charge
+7. LevelManager.OnLevelLoaded() détecté
+8. UIManager.ShowGameHUD()
+9. Jeu démarre
+
+GAMEPLAY
+────────
+Chaque frame (~60 FPS) :
+  PlayerController.Update() → Lit inputs, déplace joueur
+  EnemyAI.Update() → IA, détection, mouvement
+  UIManager.Update() → Timer, pause
+  LevelManager.Update() → Vérifie timeLimit
+
+DÉTECTION
+─────────
+1. Joueur sort de l'ombre
+2. EnemyAI.CanSeePlayer() → true
+3. EnemyAI.SetState(Alert)
+4. player.GetSpotted()
+5. LevelManager.AddDetection()
+6. Si > limite → FailLevel()
+
+VICTOIRE
+────────
+1. Joueur entre dans ExitZone
+2. ExitZone.OnTriggerEnter2D()
+3. LevelManager.CompleteLevel()
+4. Calcul score, étoiles
+5. Sauvegarde PlayerPrefs
+6. Déverrouille niveau suivant
+7. UIManager.ShowVictoryScreen()
+
+
+═══════════════════════════════════════════════════════════════
+🛠️ COMMENT UTILISER CETTE DOCUMENTATION
+═══════════════════════════════════════════════════════════════
+
+POUR COMPRENDRE UNE FONCTIONNALITÉ :
+1. Trouve le script concerné dans l'index ci-dessus
+2. Lis la partie correspondante
+3. Chaque méthode est expliquée ligne par ligne
+4. Des exemples concrets sont fournis
+
+POUR AJOUTER UNE FONCTIONNALITÉ :
+1. Identifie quel script modifier
+2. Trouve la section concernée dans la doc
+3. Suis le pattern existant
+4. Exemples :
+   - Nouvelle clé → Ajoute dans KeyColor enum
+   - Nouveau type de porte → Extends Door.cs
+   - Nouvel état ennemi → Ajoute dans EnemyState enum
+
+POUR DÉBUGGER :
+1. Active les logs Debug.Log() dans les scripts
+2. Consulte la section "Flow de données"
+3. Vérifie les références dans l'Inspector
+4. Utilise les Gizmos pour visualiser les zones
+
+
+═══════════════════════════════════════════════════════════════
+✅ CHECKLIST DE COMPRÉHENSION
+═══════════════════════════════════════════════════════════════
+
+Après avoir lu la documentation, tu devrais pouvoir répondre :
+
+[  ] Comment fonctionne le Singleton pattern ?
+[  ] Pourquoi Canvas/UIManager/LevelManager persistent entre scènes ?
+[  ] Comment le score est-il calculé ? (Formule exacte)
+[  ] Comment le joueur devient invisible ?
+[  ] Comment les clés fonctionnent (ramassage → utilisation) ?
+[  ] Comment l'IA détecte le joueur ?
+[  ] Quelle est la différence entre Update() et FixedUpdate() ?
+[  ] Comment fonctionne la pile d'écrans dans UIManager ?
+[  ] Que se passe-t-il quand le joueur atteint la sortie ?
+[  ] Comment ajouter un nouveau niveau ?
+
+
+═══════════════════════════════════════════════════════════════
+📞 SUPPORT
+═══════════════════════════════════════════════════════════════
+
+Cette documentation couvre :
+✓ Architecture complète
+✓ Tous les managers (UI, Level, Options)
+✓ Gameplay joueur complet
+✓ Système de scoring et sauvegarde
+✓ Flow de données détaillés
+
+Documentation à venir (si besoin) :
+  • EnemyAI détaillé (machine à états)
+  • Scripts environnement complets
+  • Guide d'ajout de nouveaux niveaux
+  • Tutoriel modifications avancées
+
+
+═══════════════════════════════════════════════════════════════
+FIN DE L'INDEX
+═══════════════════════════════════════════════════════════════

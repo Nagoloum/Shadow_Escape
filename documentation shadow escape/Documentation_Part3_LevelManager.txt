@@ -1,0 +1,645 @@
+═══════════════════════════════════════════════════════════════
+SHADOW ESCAPE — DOCUMENTATION TECHNIQUE
+PARTIE 3 : LEVELMANAGER ET SYSTÈME DE SCORING
+═══════════════════════════════════════════════════════════════
+
+
+════════════════════════════════════════════════════════════════
+3.1 - LEVELMANAGER : GESTION DES NIVEAUX
+════════════════════════════════════════════════════════════════
+
+RÔLE :
+LevelManager orchestre tout le gameplay : chargement des niveaux,
+scoring, timer, détections, victoire/défaite, sauvegarde.
+
+FICHIER : Assets/Scripts/Managers/LevelManager.cs
+LIGNES : ~250 lignes
+ATTACHÉ À : GameObject "LevelManager" (racine de MainMenu)
+
+PATTERN : Singleton + Observer (écoute les changements de scène)
+
+
+────────────────────────────────────────────────────────────────
+DONNÉES DES NIVEAUX (LevelData)
+────────────────────────────────────────────────────────────────
+
+CODE : LevelData.cs
+═══════════════════
+[System.Serializable]
+public class LevelData
+{
+    public string levelName;
+    public string objective;
+    public int    levelIndex;
+    public int    scoreFor3Stars;
+    public int    scoreFor2Stars;
+    public int    scoreFor1Star;
+    public float  timeLimit;
+    public int    maxDetections;
+}
+
+EXPLICATION :
+═════════════
+
+LevelData est une classe de DONNÉES (pas de logique, juste des infos).
+Elle stocke les paramètres d'un niveau.
+
+[System.Serializable] :
+  • Permet à Unity d'afficher cette classe dans l'Inspector
+  • Sans ça, Unity ne peut pas l'éditer visuellement
+
+CHAMPS :
+
+levelName : "Level 1 - The Corridor"
+  • Nom affiché dans le HUD
+
+objective : "Reach the exit"
+  • Objectif affiché en bas du HUD
+
+levelIndex : 1
+  • Numéro du niveau (1 à 5)
+  • Correspond à l'index dans Build Settings
+
+scoreFor3Stars : 900
+  • Score minimum pour obtenir 3 étoiles
+
+scoreFor2Stars : 600
+  • Score minimum pour 2 étoiles
+
+scoreFor1Star : 300
+  • Score minimum pour 1 étoile
+
+timeLimit : 0
+  • Temps limite en secondes
+  • 0 = pas de limite
+  • 120 = 2 minutes
+
+maxDetections : 3
+  • Nombre maximum de détections tolérées
+  • Si dépassé → Game Over
+
+
+────────────────────────────────────────────────────────────────
+STRUCTURE DU LEVELMANAGER
+────────────────────────────────────────────────────────────────
+
+CODE (SIMPLIFIÉ) :
+══════════════════
+public class LevelManager : MonoBehaviour
+{
+    // SINGLETON
+    public static LevelManager Instance { get; private set; }
+    
+    // DONNÉES DES 5 NIVEAUX
+    [SerializeField] private LevelData[] levels = new LevelData[5];
+    
+    // ÉTAT DU NIVEAU ACTUEL
+    private int   currentLevelIndex = 1;
+    private float currentTime       = 0f;
+    private int   currentDetections = 0;
+    private int   currentScore      = 0;
+    private bool  isLevelRunning    = false;
+    
+    // MÉTHODES PRINCIPALES
+    void Awake() { /* Singleton */ }
+    void Start() { /* S'abonne aux events */ }
+    void Update() { /* Timer */ }
+    
+    public void LoadLevel(int levelIndex) { }
+    public void CompleteLevel() { }
+    public void FailLevel(string reason) { }
+    public void AddDetection() { }
+    
+    // SAUVEGARDE
+    private void SaveProgress() { }
+    private void LoadProgress() { }
+}
+
+
+────────────────────────────────────────────────────────────────
+SINGLETON ET INITIALISATION
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+void Awake()
+{
+    if (Instance == null)
+    {
+        Instance = this;
+        
+        if (transform.parent != null)
+            transform.SetParent(null);
+        
+        DontDestroyOnLoad(gameObject);
+    }
+    else
+    {
+        Destroy(gameObject);
+    }
+}
+
+void Start()
+{
+    SceneManager.sceneLoaded += OnLevelLoaded;
+}
+
+void OnDestroy()
+{
+    SceneManager.sceneLoaded -= OnLevelLoaded;
+}
+
+EXPLICATION :
+═════════════
+
+Awake() : Identique à UIManager
+  • Pattern Singleton
+  • DontDestroyOnLoad pour persister
+
+Start() :
+  • S'abonne à l'événement sceneLoaded
+  • Quand une scène se charge, OnLevelLoaded() est appelé
+  
+  POURQUOI ?
+  On doit détecter quand Level1/2/3/4/5 se charge pour :
+    - Réinitialiser le timer
+    - Afficher le GameHUD
+    - Charger les infos du niveau
+
+OnDestroy() :
+  • Se désabonne de l'événement
+  • Bonne pratique pour éviter les fuites mémoire
+
+
+────────────────────────────────────────────────────────────────
+CHARGEMENT D'UN NIVEAU
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+public void LoadLevel(int levelIndex)
+{
+    if (levelIndex < 1 || levelIndex > levels.Length)
+    {
+        Debug.LogError("Index de niveau invalide : " + levelIndex);
+        return;
+    }
+
+    currentLevelIndex = levelIndex;
+    SceneManager.LoadScene(levelIndex);
+}
+
+EXPLICATION LIGNE PAR LIGNE :
+══════════════════════════════
+
+Line 3 : Validation
+  • Vérifie que levelIndex est entre 1 et 5
+  • Si invalide → log d'erreur et arrêt
+
+Line 9 : Sauvegarde l'index
+  • currentLevelIndex = 1, 2, 3, 4 ou 5
+  • On s'en souviendra dans OnLevelLoaded()
+
+Line 10 : Charge la scène
+  • SceneManager.LoadScene(1) → Charge Level1.unity
+  • SceneManager.LoadScene(2) → Charge Level2.unity
+  • etc.
+  
+  IMPORTANT : Les scènes doivent être dans Build Settings
+  dans le bon ordre !
+  
+  Build Settings :
+    0 : MainMenu
+    1 : Level1
+    2 : Level2
+    3 : Level3
+    4 : Level4
+    5 : Level5
+
+SÉQUENCE COMPLÈTE :
+═══════════════════
+1. Joueur clique "New Game"
+2. UIManager.OnNewGameButton() appelle LoadLevel(1)
+3. LevelManager.LoadLevel(1)
+4. SceneManager.LoadScene(1)
+5. Unity charge Level1.unity
+6. OnLevelLoaded() est appelé automatiquement
+   (car on s'est abonné dans Start)
+
+
+────────────────────────────────────────────────────────────────
+DÉTECTION DU CHARGEMENT
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+private void OnLevelLoaded(Scene scene, LoadSceneMode mode)
+{
+    // Ignore MainMenu
+    if (scene.buildIndex == 0) return;
+    
+    // Ignore si pas un niveau de gameplay
+    if (currentLevelIndex < 1 || currentLevelIndex > levels.Length)
+        return;
+    
+    // Réinitialise l'état
+    currentTime = 0f;
+    currentDetections = 0;
+    isLevelRunning = true;
+    
+    // Récupère les données du niveau
+    LevelData data = levels[currentLevelIndex - 1];
+    
+    // Informe l'UI
+    if (UIManager.Instance != null)
+    {
+        UIManager.Instance.ShowGameHUD();
+        UIManager.Instance.SetLevelName(data.levelName);
+        UIManager.Instance.SetObjective(data.objective);
+    }
+}
+
+EXPLICATION :
+═════════════
+
+PARAMÈTRES :
+  scene : La scène qui vient de se charger
+  mode : Mode de chargement (Single, Additive, etc.)
+
+Line 4 : Ignore MainMenu
+  • buildIndex 0 = MainMenu
+  • On ne veut pas réinitialiser le timer dans MainMenu
+
+Line 7 : Ignore si index invalide
+  • Sécurité supplémentaire
+
+Line 11-13 : Réinitialise l'état du niveau
+  • currentTime = 0 → Timer à zéro
+  • currentDetections = 0 → Aucune détection
+  • isLevelRunning = true → Active le timer dans Update()
+
+Line 16 : Récupère les données
+  • levels[0] = Level 1
+  • levels[1] = Level 2
+  • etc.
+  • currentLevelIndex - 1 car les index commencent à 0
+
+Line 19-24 : Met à jour l'UI
+  • Affiche le GameHUD (timer, clés, objectif)
+  • Affiche le nom du niveau : "Level 1 - The Corridor"
+  • Affiche l'objectif : "Reach the exit"
+
+EXEMPLE CONCRET :
+═════════════════
+Joueur charge Level 3 :
+→ OnLevelLoaded appelé avec scene.buildIndex = 3
+→ currentLevelIndex = 3
+→ data = levels[2] (Level 3 - The Vault)
+→ GameHUD affiche "Level 3 - The Vault"
+→ Objectif : "Find all keys"
+
+
+────────────────────────────────────────────────────────────────
+TIMER ET UPDATE
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+void Update()
+{
+    if (!isLevelRunning) return;
+    
+    currentTime += Time.deltaTime;
+    
+    LevelData data = levels[currentLevelIndex - 1];
+    if (data.timeLimit > 0 && currentTime >= data.timeLimit)
+    {
+        FailLevel("Time's up!");
+    }
+}
+
+public float GetCurrentTime()
+{
+    return currentTime;
+}
+
+public bool IsLevelRunning()
+{
+    return isLevelRunning;
+}
+
+EXPLICATION :
+═════════════
+
+Update() : Appelée chaque frame (~60 FPS)
+
+Line 3 : Vérifie si le niveau tourne
+  • Si false (dans les menus) → ne fait rien
+
+Line 5 : Incrémente le timer
+  • Time.deltaTime = temps écoulé depuis la dernière frame
+  • ~0.016s à 60 FPS
+  • currentTime s'accumule : 0.016, 0.032, 0.048...
+
+Line 7-10 : Vérifie la limite de temps
+  • Si le niveau A une limite (timeLimit > 0)
+  • ET que le temps est dépassé
+  • → Échec du niveau "Time's up!"
+
+GetCurrentTime() :
+  • Accesseur pour que UIManager puisse lire le timer
+  • UIManager.Update() appelle ça chaque frame pour mettre
+    à jour l'affichage
+
+EXEMPLE :
+═════════
+Level 4 : timeLimit = 120 (2 minutes)
+→ currentTime augmente : 0, 0.016, 0.032...
+→ À 119.5s : OK, continue
+→ À 120.1s : BOOM ! FailLevel("Time's up!")
+
+
+────────────────────────────────────────────────────────────────
+SYSTÈME DE DÉTECTIONS
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+public void AddDetection()
+{
+    currentDetections++;
+    
+    LevelData data = levels[currentLevelIndex - 1];
+    if (currentDetections > data.maxDetections)
+    {
+        FailLevel("Too many detections!");
+    }
+}
+
+EXPLICATION :
+═════════════
+
+APPELÉ PAR : PlayerController.GetSpotted()
+           ← EnemyAI détecte le joueur
+
+Line 3 : Incrémente le compteur
+  • 0 → 1 → 2 → 3...
+
+Line 6 : Vérifie si limite dépassée
+  • maxDetections = 3 → tolérance de 3 détections
+  • Si > 3 → Game Over
+
+FLOW COMPLET :
+══════════════
+1. Garde détecte joueur
+2. EnemyAI.SetState(Alert)
+3. EnemyAI appelle player.GetSpotted()
+4. PlayerController.GetSpotted() appelle LevelManager.AddDetection()
+5. LevelManager.AddDetection() incrémente
+6. Si > limite → FailLevel()
+
+
+────────────────────────────────────────────────────────────────
+VICTOIRE
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+public void CompleteLevel()
+{
+    if (!isLevelRunning) return;
+    
+    isLevelRunning = false;
+    
+    // Calcul du score
+    currentScore = CalculateScore();
+    
+    // Étoiles
+    int stars = CalculateStars(currentScore);
+    
+    // Sauvegarde
+    SaveProgress();
+    
+    // Débloque niveau suivant
+    int unlocked = PlayerPrefs.GetInt("UnlockedLevels", 1);
+    if (currentLevelIndex >= unlocked)
+    {
+        PlayerPrefs.SetInt("UnlockedLevels", currentLevelIndex + 1);
+    }
+    
+    // Affiche victoire
+    if (UIManager.Instance != null)
+    {
+        UIManager.Instance.ShowVictoryScreen(
+            currentTime, 
+            currentDetections, 
+            currentScore
+        );
+    }
+}
+
+private int CalculateScore()
+{
+    int score = 1000;
+    
+    // Pénalité temps
+    score -= Mathf.FloorToInt(currentTime);
+    
+    // Pénalité détections
+    score -= currentDetections * 100;
+    
+    // Bonus zéro détection
+    if (currentDetections == 0)
+        score += 200;
+    
+    return Mathf.Max(0, score);
+}
+
+private int CalculateStars(int score)
+{
+    LevelData data = levels[currentLevelIndex - 1];
+    
+    if (score >= data.scoreFor3Stars) return 3;
+    if (score >= data.scoreFor2Stars) return 2;
+    if (score >= data.scoreFor1Star)  return 1;
+    return 0;
+}
+
+EXPLICATION COMPLÈTE :
+══════════════════════
+
+CompleteLevel() :
+  APPELÉ PAR : ExitZone.OnTriggerEnter2D() quand joueur atteint sortie
+
+  Line 3 : Vérifie que le niveau tourne
+    • Évite de compléter 2 fois
+
+  Line 5 : Arrête le niveau
+    • Timer s'arrête, plus de détections possibles
+
+  Line 8 : Calcule le score final
+    • Formule dans CalculateScore()
+
+  Line 11 : Calcule les étoiles
+    • 0, 1, 2 ou 3 étoiles selon le score
+
+  Line 14 : Sauvegarde la progression
+    • Meilleur score, étoiles, temps dans PlayerPrefs
+
+  Line 17-21 : Débloque le niveau suivant
+    • Si on vient de finir Level 3, débloque Level 4
+    • PlayerPrefs.GetInt("UnlockedLevels") retourne le dernier
+      niveau débloqué
+    • On augmente de 1 si besoin
+
+  Line 24-30 : Affiche l'écran de victoire
+    • Passe temps, détections, score à UIManager
+
+
+CalculateScore() : FORMULE DU SCORE
+═════════════════════════════════════
+
+BASE : 1000 points
+
+PÉNALITÉS :
+  • -1 point par seconde écoulée
+  • -100 points par détection
+
+BONUS :
+  • +200 points si zéro détection (run parfait)
+
+EXEMPLES :
+──────────
+Scénario A : 45s, 0 détections
+  1000 - 45 - 0 + 200 = 1155 points → 3 étoiles
+
+Scénario B : 120s, 2 détections
+  1000 - 120 - 200 + 0 = 680 points → 2 étoiles
+
+Scénario C : 180s, 3 détections
+  1000 - 180 - 300 + 0 = 520 points → 1 étoile
+
+Scénario D : 300s, 5 détections
+  1000 - 300 - 500 + 0 = 200 points → 0 étoile
+
+
+CalculateStars() : ATTRIBUTION DES ÉTOILES
+═══════════════════════════════════════════
+
+SEUILS PAR DÉFAUT :
+  • 3★ : ≥ 900 points
+  • 2★ : ≥ 600 points
+  • 1★ : ≥ 300 points
+  • 0★ : < 300 points
+
+Ces seuils sont configurables par niveau dans LevelData.
+
+
+────────────────────────────────────────────────────────────────
+ÉCHEC
+────────────────────────────────────────────────────────────────
+
+CODE :
+══════
+public void FailLevel(string reason)
+{
+    if (!isLevelRunning) return;
+    
+    isLevelRunning = false;
+    
+    if (UIManager.Instance != null)
+    {
+        UIManager.Instance.ShowDefeatScreen(reason);
+    }
+}
+
+EXPLICATION :
+═════════════
+
+APPELÉ PAR :
+  • AddDetection() si trop de détections
+  • Update() si temps écoulé
+
+PARAMÈTRE :
+  reason : Message d'erreur
+    - "Too many detections!"
+    - "Time's up!"
+
+Line 5 : Arrête le niveau
+
+Line 9 : Affiche l'écran de défaite avec le message
+
+
+────────────────────────────────────────────────────────────────
+SAUVEGARDE AVEC PLAYERPREFS
+────────────────────────────────────────────────────────────────
+
+PlayerPrefs = Système Unity pour sauvegarder des données simples
+localement (comme des cookies).
+
+CLÉS UTILISÉES :
+════════════════
+
+"UnlockedLevels" : int
+  • Dernier niveau débloqué (1 à 5)
+  • Détermine si "Continue" s'affiche dans MainMenu
+
+"Stars_Level_X" : int
+  • Nombre d'étoiles obtenues au niveau X
+  • Exemple : "Stars_Level_3" = 2
+
+"BestTime_Level_X" : float
+  • Meilleur temps au niveau X
+  • Exemple : "BestTime_Level_1" = 45.3
+
+CODE :
+══════
+private void SaveProgress()
+{
+    int levelKey = currentLevelIndex;
+    
+    // Sauvegarde étoiles
+    int oldStars = PlayerPrefs.GetInt("Stars_Level_" + levelKey, 0);
+    int newStars = CalculateStars(currentScore);
+    if (newStars > oldStars)
+    {
+        PlayerPrefs.SetInt("Stars_Level_" + levelKey, newStars);
+    }
+    
+    // Sauvegarde meilleur temps
+    float oldTime = PlayerPrefs.GetFloat("BestTime_Level_" + levelKey, 9999f);
+    if (currentTime < oldTime)
+    {
+        PlayerPrefs.SetFloat("BestTime_Level_" + levelKey, currentTime);
+    }
+    
+    PlayerPrefs.Save();
+}
+
+public void ResetAllProgress()
+{
+    PlayerPrefs.DeleteAll();
+    PlayerPrefs.SetInt("UnlockedLevels", 1);
+    PlayerPrefs.Save();
+}
+
+EXPLICATION :
+═════════════
+
+SaveProgress() :
+  • Compare nouvelles étoiles avec anciennes
+  • Ne sauvegarde QUE si meilleur
+  • Pareil pour le temps
+  • PlayerPrefs.Save() écrit sur disque
+
+ResetAllProgress() :
+  • Supprime TOUTES les sauvegardes
+  • Remet "UnlockedLevels" à 1
+  • Utilisé par "New Game"
+
+
+════════════════════════════════════════════════════════════════
+FIN DE LA PARTIE 3
+════════════════════════════════════════════════════════════════
+
+Suite dans Partie 4 : PlayerController (Gameplay Joueur)

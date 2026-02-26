@@ -1,0 +1,444 @@
+═══════════════════════════════════════════════════════════════
+SHADOW ESCAPE — DOCUMENTATION TECHNIQUE COMPLÈTE
+═══════════════════════════════════════════════════════════════
+
+VERSION : 1.0
+DATE : 2025-02-26
+TYPE : Jeu d'infiltration 2D top-down
+
+Cette documentation détaille TOUTES les fonctionnalités du jeu,
+chaque ligne de code importante, et comment tout fonctionne ensemble.
+
+
+═══════════════════════════════════════════════════════════════
+TABLE DES MATIÈRES
+═══════════════════════════════════════════════════════════════
+
+PARTIE 1 : ARCHITECTURE GÉNÉRALE
+  1.1 - Vue d'ensemble du projet
+  1.2 - Structure des scènes
+  1.3 - Système de persistance (DontDestroyOnLoad)
+  1.4 - Flow du jeu (de MainMenu à Victory)
+
+PARTIE 2 : SYSTÈME DE GESTION (MANAGERS)
+  2.1 - UIManager : Gestion de l'interface utilisateur
+  2.2 - LevelManager : Gestion des niveaux et scores
+  2.3 - OptionsManager : Gestion des paramètres
+
+PARTIE 3 : GAMEPLAY — JOUEUR
+  3.1 - PlayerController : Mouvement et contrôles
+  3.2 - Système de visibilité (ombre/lumière)
+  3.3 - Système d'inventaire (clés)
+  3.4 - Interactions (portes, boutons)
+
+PARTIE 4 : GAMEPLAY — ENNEMIS
+  4.1 - EnemyAI : Intelligence artificielle
+  4.2 - Machine à états (Patrol, Suspicious, Alert, Search)
+  4.3 - Système de vision (cône + rayon)
+  4.4 - Détection du joueur
+
+PARTIE 5 : ENVIRONNEMENT
+  5.1 - ShadowZone : Zones d'ombre
+  5.2 - Door : Portes (verrouillées, normales, bouton)
+  5.3 - KeyPickup : Clés ramassables
+  5.4 - ButtonSwitch : Interrupteurs
+  5.5 - ExitZone : Sortie de niveau
+  5.6 - InteractionZone : Prompts d'interaction
+
+PARTIE 6 : SYSTÈME DE SCORING
+  6.1 - Calcul du score
+  6.2 - Attribution des étoiles
+  6.3 - Sauvegarde de la progression
+
+PARTIE 7 : SYSTÈMES UI
+  7.1 - Menu principal (New Game, Continue, Options)
+  7.2 - HUD en jeu (timer, clés, visibilité)
+  7.3 - Menu pause
+  7.4 - Écrans de victoire/défaite
+  7.5 - Sélection de niveau
+
+PARTIE 8 : FLUX DE DONNÉES
+  8.1 - Communication entre scripts
+  8.2 - Événements et callbacks
+  8.3 - PlayerPrefs et sauvegarde
+
+
+═══════════════════════════════════════════════════════════════
+PARTIE 1 : ARCHITECTURE GÉNÉRALE
+═══════════════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────────────
+1.1 - VUE D'ENSEMBLE DU PROJET
+────────────────────────────────────────────────────────────────
+
+CONCEPT :
+Shadow Escape est un jeu d'infiltration 2D où le joueur doit
+atteindre la sortie sans être détecté par des gardes patrouilleurs.
+Le joueur est invisible dans les zones d'ombre.
+
+MÉCANIQUES PRINCIPALES :
+• Visibilité : Caché dans l'ombre / Exposé dans la lumière
+• Furtivité : Éviter les gardes et leurs cônes de vision
+• Puzzles : Récupérer des clés, activer des boutons
+• Timing : Certains niveaux ont un chronomètre
+• Scoring : Étoiles basées sur temps + détections
+
+TECHNOLOGIES :
+• Unity 6.3 LTS (2D)
+• C# (.NET 4.x)
+• Input System Package (nouveau système d'input)
+• TextMeshPro (UI)
+
+STRUCTURE DU PROJET :
+Assets/
+├── Scenes/
+│   ├── MainMenu.unity        (Menu principal)
+│   ├── Level1.unity          (The Corridor)
+│   ├── Level2.unity          (The Key Room)
+│   ├── Level3.unity          (The Vault)
+│   ├── Level4.unity          (Flashlights)
+│   └── Level5.unity          (Final Escape)
+├── Scripts/
+│   ├── Managers/
+│   │   ├── UIManager.cs
+│   │   ├── LevelManager.cs
+│   │   ├── OptionsManager.cs
+│   │   └── LevelSelectManager.cs
+│   ├── Player/
+│   │   └── PlayerController.cs
+│   ├── Enemy/
+│   │   └── EnemyAI.cs
+│   ├── Environment/
+│   │   ├── ShadowZone.cs
+│   │   ├── Door.cs
+│   │   ├── KeyPickup.cs
+│   │   ├── ButtonSwitch.cs
+│   │   ├── ExitZone.cs
+│   │   └── InteractionZone.cs
+│   ├── UI/
+│   │   └── LevelButtonClick.cs
+│   ├── LevelData.cs
+│   ├── KeyColor.cs
+│   ├── CanvasPersist.cs
+│   └── PersistentUI.cs (optionnel)
+└── Sprites/
+    ├── Player/
+    ├── Enemies/
+    ├── Environment/
+    └── UI/
+
+
+────────────────────────────────────────────────────────────────
+1.2 - STRUCTURE DES SCÈNES
+────────────────────────────────────────────────────────────────
+
+MAINMENU (Index 0) :
+═══════════════════
+Contient TOUTE l'interface utilisateur du jeu.
+Les managers persistent via DontDestroyOnLoad.
+
+Hierarchy :
+MainMenu/
+├── Main Camera
+├── EventSystem
+├── Canvas  ← Avec script CanvasPersist.cs
+│   ├── MainMenu (Panel)
+│   │   ├── ButtonsContainer
+│   │   │   ├── NewGameButton
+│   │   │   ├── ContinueButton
+│   │   │   ├── LevelsButton
+│   │   │   ├── OptionsButton
+│   │   │   └── QuitButton
+│   ├── GameHUD (Panel, désactivé par défaut)
+│   │   ├── TopBar (LevelName, Timer)
+│   │   ├── PlayerStatus (VisibilityIndicator, StatusText)
+│   │   ├── KeysDisplay (RedKey, BlueKey, GreenKey, YellowKey)
+│   │   └── BottomBar (Objective, InteractionPrompt)
+│   ├── PauseMenu (Panel, désactivé)
+│   │   ├── ResumeButton
+│   │   ├── RestartButton
+│   │   └── MainMenuButton
+│   ├── VictoryScreen (Panel, désactivé)
+│   │   ├── TimeText, DetectionsText, ScoreText
+│   │   ├── Stars (3 images)
+│   │   ├── NextLevelButton
+│   │   ├── RestartButton
+│   │   └── MainMenuButton
+│   ├── DefeatScreen (Panel, désactivé)
+│   │   ├── ReasonText
+│   │   ├── RestartButton
+│   │   └── MainMenuButton
+│   ├── LevelSelectScreen (Panel, désactivé)
+│   │   ├── Level1Button
+│   │   ├── Level2Button
+│   │   ├── ...
+│   │   └── BackButton
+│   └── OptionsScreen (Panel, désactivé)
+│       ├── VolumeSlider
+│       └── BackButton
+├── UIManager  ← À LA RACINE (script UIManager.cs)
+└── LevelManager  ← À LA RACINE (script LevelManager.cs)
+
+POURQUOI CETTE STRUCTURE ?
+• Canvas doit persister entre les scènes pour garder les UI
+• UIManager et LevelManager doivent être à la RACINE pour
+  que DontDestroyOnLoad fonctionne
+• Tous les panels sont dans Canvas pour partager le même système UI
+
+
+LEVEL1-5 (Index 1-5) :
+═══════════════════════
+Contiennent uniquement le GAMEPLAY (joueur, ennemis, environnement).
+Pas d'UI ici (elle vient de MainMenu via DontDestroyOnLoad).
+
+Hierarchy typique :
+Level1/
+├── Main Camera (position fixe ou follow player)
+├── EventSystem
+├── Player
+│   └── (PlayerController.cs)
+├── Walls/
+│   ├── Wall_Top
+│   ├── Wall_Bottom
+│   ├── Wall_Left
+│   └── Wall_Right
+├── ShadowZones/
+│   ├── ShadowZone_1
+│   ├── ShadowZone_2
+│   └── ...
+├── Guards/
+│   ├── Guard_1
+│   │   ├── ExclamationMark (désactivé)
+│   │   ├── QuestionMark (désactivé)
+│   │   └── (EnemyAI.cs)
+│   ├── Waypoints_Guard1/
+│   │   ├── WP1
+│   │   └── WP2
+│   └── ...
+├── Interactables/
+│   ├── Key_Red
+│   ├── Door_Red
+│   ├── Switch_1
+│   └── ...
+└── Exit
+
+
+────────────────────────────────────────────────────────────────
+1.3 - SYSTÈME DE PERSISTANCE (DontDestroyOnLoad)
+────────────────────────────────────────────────────────────────
+
+PROBLÈME À RÉSOUDRE :
+Par défaut, Unity DÉTRUIT tous les GameObjects d'une scène quand
+on charge une nouvelle scène. Mais on veut que l'UI et les managers
+persistent entre MainMenu et les niveaux.
+
+SOLUTION : DontDestroyOnLoad()
+Cette fonction Unity déplace un GameObject dans une zone spéciale
+"DontDestroyOnLoad" qui survit aux changements de scène.
+
+CONTRAINTE IMPORTANTE :
+DontDestroyOnLoad() ne fonctionne QUE sur des objets à la RACINE
+de la Hierarchy. Si l'objet est enfant d'un autre, Unity affiche
+une erreur.
+
+OBJETS QUI PERSISTENT :
+1. Canvas (avec script CanvasPersist.cs)
+2. UIManager (avec DontDestroyOnLoad dans son Awake)
+3. LevelManager (avec DontDestroyOnLoad dans son Awake)
+
+CODE : CanvasPersist.cs
+─────────────────────────
+using UnityEngine;
+
+public class CanvasPersist : MonoBehaviour
+{
+    private static CanvasPersist instance;
+
+    void Awake()
+    {
+        // Pattern Singleton : une seule instance persiste
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+            Debug.Log("✓ Canvas UI préservé");
+        }
+        else
+        {
+            // Si une 2e instance existe, la détruire
+            Destroy(gameObject);
+        }
+    }
+}
+
+EXPLICATIONS LIGNE PAR LIGNE :
+• Line 5 : Variable statique = partagée entre toutes les instances
+• Line 9 : Si c'est la première instance (instance == null)
+• Line 11 : On la garde comme référence
+• Line 12 : DontDestroyOnLoad déplace le GameObject dans la zone persistante
+• Line 16-17 : Si une 2e instance est créée (ex: retour au MainMenu),
+              on la détruit pour éviter les doublons
+
+CYCLE DE VIE :
+1. MainMenu démarre → Canvas créé → CanvasPersist.Awake() exécuté
+   → instance = ce Canvas → DontDestroyOnLoad(Canvas)
+2. LoadLevel(1) → Level1 se charge → Canvas reste dans DontDestroyOnLoad
+3. LoadLevel(2) → Level2 se charge → Canvas reste
+4. Retour MainMenu → Un nouveau Canvas est créé dans la scène MainMenu
+   → CanvasPersist.Awake() détecte que instance != null
+   → Détruit le nouveau Canvas (on garde l'ancien)
+
+
+────────────────────────────────────────────────────────────────
+1.4 - FLOW DU JEU (de MainMenu à Victory)
+────────────────────────────────────────────────────────────────
+
+FLUX COMPLET D'UNE PARTIE :
+
+1. DÉMARRAGE DU JEU
+   ═════════════════
+   Unity charge → MainMenu.unity (Index 0)
+   ↓
+   MainMenu.Awake() exécuté
+   ↓
+   Canvas.CanvasPersist.Awake() → DontDestroyOnLoad(Canvas)
+   ↓
+   UIManager.Awake() → DontDestroyOnLoad(UIManager)
+   ↓
+   LevelManager.Awake() → DontDestroyOnLoad(LevelManager)
+   ↓
+   UIManager.Start() → ShowMainMenu()
+   ↓
+   MainMenu Panel s'affiche
+
+2. NOUVELLE PARTIE
+   ═══════════════
+   Joueur clique "New Game"
+   ↓
+   UIManager.OnNewGameButton() appelé
+   ↓
+   LevelManager.ResetAllProgress()
+     • PlayerPrefs.SetInt("UnlockedLevels", 1)
+     • Supprime toutes les sauvegardes de score
+   ↓
+   LevelManager.LoadLevel(1)
+     • SceneManager.LoadScene(1) → Charge Level1.unity
+   ↓
+   Level1 se charge → MAIS Canvas/UIManager/LevelManager persistent
+
+3. DÉBUT DU NIVEAU
+   ══════════════════
+   Level1.Awake() exécuté (vide, pas de managers ici)
+   ↓
+   Player.Start() exécuté → PlayerController initialisé
+   ↓
+   Guard_1.Start() exécuté → EnemyAI initialisé
+   ↓
+   LevelManager.Start() (mais déjà démarré dans MainMenu)
+   ↓
+   UIManager.Start() (mais déjà démarré)
+   ↓
+   LevelManager détecte changement de scène
+   ↓
+   LevelManager.OnLevelLoaded(scene, mode) appelé
+     • Réinitialise timer, détections, score
+     • Appelle UIManager.ShowGameHUD()
+   ↓
+   GameHUD s'affiche (timer, objectif, clés, etc.)
+
+4. GAMEPLAY
+   ══════════
+   Boucle Update() de tous les scripts :
+   
+   PlayerController.Update() :
+     • Lit les inputs (WASD, Shift, E)
+     • Déplace le joueur
+     • Détecte si dans une ShadowZone
+     • Met à jour UIManager.UpdatePlayerVisibility()
+   
+   EnemyAI.Update() :
+     • Machine à états (Patrol, Suspicious, Alert, Search)
+     • Détecte le joueur avec CanSeePlayer()
+     • Change d'état selon la situation
+     • Déplace le garde vers waypoints ou joueur
+   
+   UIManager.Update() :
+     • Met à jour le timer
+     • Écoute ESC/Espace pour pause
+   
+   LevelManager.Update() :
+     • Compte le temps écoulé
+     • Vérifie si timeLimit dépassé → FailLevel()
+
+5. DÉTECTION PAR UN GARDE
+   ═══════════════════════
+   Guard détecte le joueur
+   ↓
+   EnemyAI.SetState(Alert)
+     • Appelle player.GetSpotted()
+   ↓
+   PlayerController.GetSpotted()
+     • Appelle LevelManager.AddDetection()
+   ↓
+   LevelManager.AddDetection()
+     • currentDetections++
+     • Si > maxDetections → FailLevel("Too many detections!")
+   ↓
+   LevelManager.FailLevel(reason)
+     • Appelle UIManager.ShowDefeatScreen(reason)
+   ↓
+   DefeatScreen s'affiche → Game Over
+
+6. SORTIE ATTEINTE
+   ════════════════
+   Player entre dans ExitZone
+   ↓
+   ExitZone.OnTriggerEnter2D(player) détecté
+   ↓
+   ExitZone appelle LevelManager.CompleteLevel()
+   ↓
+   LevelManager.CompleteLevel()
+     • Calcule score final
+     • Calcule étoiles (3/2/1)
+     • Sauvegarde meilleur score dans PlayerPrefs
+     • Débloque niveau suivant
+     • Appelle UIManager.ShowVictoryScreen(time, detections, score)
+   ↓
+   VictoryScreen s'affiche avec temps, score, étoiles
+
+7. NIVEAU SUIVANT
+   ═══════════════
+   Joueur clique "Next Level"
+   ↓
+   UIManager.OnNextLevelButton()
+     • Appelle LevelManager.LoadNextLevel()
+   ↓
+   LevelManager.LoadNextLevel()
+     • currentLevelIndex++
+     • LoadLevel(currentLevelIndex)
+   ↓
+   Level2 se charge → Retour à l'étape 3
+
+8. RETOUR MENU
+   ═════════════
+   Joueur clique "Main Menu" (depuis Pause, Victory ou Defeat)
+   ↓
+   UIManager.OnMainMenuButton()
+     • Time.timeScale = 1 (débloque le jeu si en pause)
+     • ShowMainMenu()
+   ↓
+   UIManager.ShowMainMenu()
+     • Désactive tous les écrans
+     • Active MainMenu Panel
+     • Appelle RefreshMainMenuButtons() pour afficher "Continue"
+   ↓
+   MainMenu s'affiche → Joueur peut relancer ou continuer
+
+
+════════════════════════════════════════════════════════════════
+FIN DE LA PARTIE 1
+════════════════════════════════════════════════════════════════
+
+La suite de la documentation détaille chaque script individuellement
+avec chaque méthode expliquée ligne par ligne.
